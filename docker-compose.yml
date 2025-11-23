@@ -3,7 +3,7 @@ services:
   api:
     build: .
     container_name: api
-    command: bash -c "cd /src/rest && python manage.py runserver 0.0.0.0:8000"
+    command: bash -c "/src/docker-entrypoint.sh"
     ports:
       - "8000:8000"
     links:
@@ -11,6 +11,11 @@ services:
     volumes:
       - ${ADBREW_CODEBASE_PATH}/tmp:/tmp
       - ${ADBREW_CODEBASE_PATH}:/src
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import sys, urllib.request as u;\n\nresp=u.urlopen('http://127.0.0.1:8000/health/');\nstatus=getattr(resp,'status', None) or resp.getcode();\nsys.exit(0 if status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   app:
     build: .
@@ -20,6 +25,7 @@ services:
       - "3000:3000"
     volumes:
       - ${ADBREW_CODEBASE_PATH}:/src
+      - app_node_modules:/src/app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
@@ -33,5 +39,8 @@ services:
       - "27017:27017"
     volumes:
       - ${ADBREW_CODEBASE_PATH}/db/:/data/db
+
+volumes:
+  app_node_modules:
 
     

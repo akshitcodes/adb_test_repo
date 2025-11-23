@@ -5,6 +5,7 @@ from rest_framework import status
 import json, logging, os
 from pymongo import MongoClient
 from math import ceil
+from rest_framework.views import APIView as DRFAPIView
 
 
 def _int_param(request, name, default):
@@ -19,6 +20,7 @@ def _int_param(request, name, default):
 
 mongo_uri = 'mongodb://' + os.environ["MONGO_HOST"] + ':' + os.environ["MONGO_PORT"]
 db = MongoClient(mongo_uri)['test_db']
+logger = logging.getLogger(__name__)
 
 class TodoListView(APIView):
 
@@ -49,7 +51,7 @@ class TodoListView(APIView):
                 'total_pages': total_pages,
             }, status=status.HTTP_200_OK)
         except Exception as e:
-            logging.exception("Error fetching todos")
+            logger.exception("Error fetching todos")
             return Response({"error": "Unable to fetch todos"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     def post(self, request):
@@ -71,6 +73,18 @@ class TodoListView(APIView):
             created = {"id": str(result.inserted_id), "text": doc["text"]}
             return Response(created, status=status.HTTP_201_CREATED)
         except Exception as e:
-            logging.exception("Error creating todo")
+            logger.exception("Error creating todo")
             return Response({"error": "Unable to create todo"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class HealthView(DRFAPIView):
+    """Simple health endpoint: checks MongoDB connectivity."""
+    def get(self, request):
+        try:
+            # quick ping to Mongo
+            db.command('ping')
+            return Response({'status': 'ok'}, status=status.HTTP_200_OK)
+        except Exception:
+            logger.exception('Health check failed')
+            return Response({'status': 'error'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
