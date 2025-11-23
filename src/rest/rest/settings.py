@@ -14,19 +14,41 @@ from pathlib import Path
 from datetime import timedelta
 import sys, os
 from corsheaders.defaults import default_headers
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-print( "base dir path", BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, ".."))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
-SECRET_KEY = '00000000000000000000000000000000000000000000000000'
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+ENV = os.getenv('ENV', 'development').lower()
+IS_PRODUCTION = ENV == 'production'
 
-ALLOWED_HOSTS = ['localhost']
+# SECRET_KEY: require in production, allow a simple dev default locally
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+if SECRET_KEY:
+    SECRET_KEY = SECRET_KEY.strip()
+if not SECRET_KEY:
+    if IS_PRODUCTION:
+        raise ImproperlyConfigured('DJANGO_SECRET_KEY must be set in production')
+    # Dev default (only used when ENV != 'production')
+    SECRET_KEY = '0000000000000000000000000000000000000000000000000000000000000000'
+
+def _env_bool(name, default=False):
+    v = os.getenv(name)
+    if v is None:
+        return default
+    return str(v).strip().lower() in ('1', 'true', 'yes', 'y', 'on')
+
+# DEBUG defaults to False in production, True in development
+DEBUG = _env_bool('DJANGO_DEBUG', not IS_PRODUCTION)
+
+# Minimal production security flags (can be overridden by env)
+if IS_PRODUCTION:
+    SECURE_SSL_REDIRECT = _env_bool('SECURE_SSL_REDIRECT', True)
+    SESSION_COOKIE_SECURE = _env_bool('SESSION_COOKIE_SECURE', True)
+    CSRF_COOKIE_SECURE = _env_bool('CSRF_COOKIE_SECURE', True)
 
 
 # Application definition
@@ -131,6 +153,18 @@ REST_FRAMEWORK = {
 }
 
 
-CORS_ORIGIN_ALLOW_ALL = True # If this is used then `CORS_ORIGIN_WHITELIST` will not have any effect
-CORS_ALLOW_CREDENTIALS = True
+# CORS: restrict to specific origins for security
+cors_env = os.getenv('CORS_ALLOWED_ORIGINS')
+if cors_env:
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in cors_env.split(',') if o.strip()]
+else:
+    CORS_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']
+CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'true').lower() == 'true'
+
+
+allowed_hosts_env = os.getenv('ALLOWED_HOSTS')
+if allowed_hosts_env:
+    ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_env.split(',') if h.strip()]
+else:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 

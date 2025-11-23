@@ -10,18 +10,22 @@ RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
 RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 
 
-# Mongo
+# Mongo - Install MongoDB directly without relying on Debian packages
+# Download and install MongoDB community server
 RUN ln -s /bin/echo /bin/systemctl
-RUN wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | apt-key add -
-RUN echo "deb http://repo.mongodb.org/apt/debian buster/mongodb-org/4.4 main" | tee /etc/apt/sources.list.d/mongodb-org-4.4.list
-RUN apt-get -y update
-RUN apt-get install -y mongodb-org
+RUN cd /tmp && wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian10-5.0.0.tgz && \
+    tar -zxvf mongodb-linux-x86_64-debian10-5.0.0.tgz && \
+    cp -r /tmp/mongodb-linux-x86_64-debian10-5.0.0/bin/* /usr/local/bin/ && \
+    mkdir -p /data/db && \
+    useradd -m mongodb || true && \
+    chown -R mongodb:mongodb /data/db
 
-# Install Yarn
-RUN apt-get install -y yarn
+# Install Node.js and Yarn (use NodeSource for up-to-date Node, then install yarn via npm)
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g yarn
 
-# Install PIP
-RUN easy_install pip
+# Install PIP (pip is already included with Python 3.8)
 
 
 ENV ENV_TYPE staging
