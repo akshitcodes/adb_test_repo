@@ -9,7 +9,6 @@ services:
     links:
       - mongo
     volumes:
-      - ${ADBREW_CODEBASE_PATH}/tmp:/tmp
       - ${ADBREW_CODEBASE_PATH}:/src
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import sys, urllib.request as u;\n\nresp=u.urlopen('http://127.0.0.1:8000/health/');\nstatus=getattr(resp,'status', None) or resp.getcode();\nsys.exit(0 if status==200 else 1)\""]
