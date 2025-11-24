@@ -10,6 +10,11 @@ services:
       - mongo
     volumes:
       - ${ADBREW_CODEBASE_PATH}:/src
+    environment:
+      - MONGO_HOST=mongo
+      - MONGO_PORT=27017
+      - RUN_DB_WAIT=1
+      - DB_WAIT_TIMEOUT=120
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import sys, urllib.request as u;\n\nresp=u.urlopen('http://127.0.0.1:8000/health/');\nstatus=getattr(resp,'status', None) or resp.getcode();\nsys.exit(0 if status==200 else 1)\""]
       interval: 10s

@@ -120,6 +120,36 @@ def wait_for_db(timeout: int = 30, interval: float = 1.0, timeout_seconds: int =
 
         mongo_uri = os.environ.get('MONGO_URI', 'mongodb://mongo:27017')
 
+  
+    try:
+        import socket
+
+        # extract host from URI (handles simple mongodb://host:port/ cases)
+        host_part = mongo_uri.split('://', 1)[-1].split('/', 1)[0]
+        host = host_part.split(',', 1)[0].split(':', 1)[0]
+
+        addr = None
+        dns_start = time.time()
+        resolved = False
+        # Try resolving the hostname repeatedly until overall timeout
+        while time.time() - dns_start < timeout:
+            try:
+                addr = socket.gethostbyname(host)
+                logger.info("Resolved Mongo host %s -> %s", host, addr)
+                resolved = True
+                break
+            except Exception as dns_e:
+                logger.debug("DNS for %s not resolved yet: %s", host, dns_e)
+             
+                time.sleep(min(0.5, interval))
+
+        if resolved:
+            logger.info("Probing MongoDB at URI=%s (host=%s resolved to %s)", mongo_uri, host, addr)
+        else:
+            logger.info("Probing MongoDB at URI=%s (host resolution failed after retries)", mongo_uri)
+    except Exception as _e:
+        logger.info("Probing MongoDB at URI=%s (host resolution check skipped: %s)", mongo_uri, _e)
+
     while True:
         try:
             probe_client = MongoClient(
