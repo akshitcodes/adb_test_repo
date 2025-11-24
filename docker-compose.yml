@@ -3,13 +3,13 @@ services:
   api:
     build: .
     container_name: api
-    command: bash -c "/src/docker-entrypoint.sh"
+    command: bash /src/docker-entrypoint.sh
     ports:
       - "8000:8000"
     links:
       - mongo
     volumes:
-      - ${ADBREW_CODEBASE_PATH}:/src
+      - ./src:/src
     environment:
       - MONGO_HOST=mongo
       - MONGO_PORT=27017
@@ -24,11 +24,11 @@ services:
   app:
     build: .
     container_name: app
-    command: bash -c "/src/app/docker_start.sh"
+    command: bash /src/app/docker_start.sh
     ports:
       - "3000:3000"
     volumes:
-      - ${ADBREW_CODEBASE_PATH}:/src
+      - ./src:/src
       - app_node_modules:/src/app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
@@ -42,7 +42,7 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - ${ADBREW_CODEBASE_PATH}/db/:/data/db
+      - ./db:/data/db
 
 volumes:
   app_node_modules:
